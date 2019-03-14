@@ -6,6 +6,7 @@ const { width, height } = Dimensions.get('window')
 const Rate = props => (
     <View style={[styles.container, {top: (props.width > props.height)? 80 : 160}]}>
         <Text style={{color: '#000'}}>Сделайте ставку</Text>
+        <Text style={{color: '#000'}}>{props.name}</Text>
         <Text style={{color: '#000'}}> Bank: <Text style={{fontWeight: 'bold'}}>{props.cash}</Text></Text>
         <Text style={{color: '#000'}}>Bet:      <Text style={{fontWeight: 'bold'}}>{props.bet}</Text></Text>
     </View>

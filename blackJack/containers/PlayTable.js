@@ -1,11 +1,12 @@
 import React, {Component} from 'react';
-import {StyleSheet, Text, View, ImageBackground } from 'react-native';
+import {StyleSheet, Text, View, ImageBackground, YellowBox } from 'react-native';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
   listenOrientationChange as loc,
   removeOrientationListener as rol
 } from 'react-native-responsive-screen';
+import * as firebase from "firebase";
 
 import Rate from '../components/Rate'
 import Dib from '../components/Dib'
@@ -13,9 +14,11 @@ import ButtonPlay from '../components/ButtonPlay'
 import PlayerHand from '../components/PlayerHand'
 import DealerHand from '../components/DealerHand'
 
-
+let count = 0;
 export default class PlayTable extends Component {
+    _isMounted = false;
    constructor(props) {
+        YellowBox.ignoreWarnings(['Setting a timer']);
        super(props);
        this.state = {
           dibs:[
@@ -366,6 +369,8 @@ export default class PlayTable extends Component {
               ],
           bet: 0,
           cash: 1500,
+          name: '',
+          uid: '',
           playerHand: [],
           playerHandSum: 0,
           dealerHand: [],
@@ -377,7 +382,7 @@ export default class PlayTable extends Component {
     }
 
     onCreateDibHandler = (value) =>{
-        if(this.state.bet === 0 && this.state.cash >= 0 && this.state.playerHandSum === 0){
+        if(this.state.bet >= 0 && this.state.cash > 0 && this.state.playerHandSum === 0){
             let bet = parseInt(this.state.bet) + parseInt(value)
             let cash = parseInt(this.state.cash) - parseInt(value)
             this.setState({
@@ -417,9 +422,9 @@ export default class PlayTable extends Component {
                      isEnough: false,
                      isMore: false
                 });
-
+                updateData(cash);
                 alert('У Вас BlackJack!!!!!!!!!!!!!');
-            }, 1000);
+            }, 700);
 
         }else if(playerHandSum > 21){
             setTimeout(()=>{
@@ -434,8 +439,9 @@ export default class PlayTable extends Component {
                     isEnough: false,
                     isMore: false
                 });
+                updateData(cash);
                 alert('Вы проиграли!!!!!!!');
-            }, 1000);
+            }, 700);
 
         }
 
@@ -463,9 +469,9 @@ export default class PlayTable extends Component {
                     isEnough: false,
                     isMore: false
                 });
-
+                updateData(cash)
                 alert('У Вас BlackJack!!!!!!!!!!!!!');
-            }, 1000);
+            }, 700);
 
         }else if(playerHandSum > 21){
             setTimeout(()=>{
@@ -480,8 +486,9 @@ export default class PlayTable extends Component {
                     isEnough: false,
                     isMore: false
                 });
+                updateData(cash)
                 alert('Вы проиграли!!!!!!!');
-            }, 1000);
+            }, 700);
 
         }
 
@@ -517,9 +524,9 @@ export default class PlayTable extends Component {
                     isEnough: false,
                     isMore: false
                 });
-
+                updateData(cash)
                 alert('У дилера BlackJack! Вы проиграли(((((');
-            }, 1000);
+            }, 700);
         }else if(dealerHandSum > 21 || this.state.playerHandSum > dealerHandSum){
             setTimeout(()=>{
                 let cash = this.state.cash + this.state.bet*2;
@@ -533,9 +540,9 @@ export default class PlayTable extends Component {
                     isEnough: false,
                     isMore: false
                 });
-
+                updateData(cash)
                 alert('Вы выграли!!!!!!!!!!!!!');
-            }, 1000);
+            }, 700);
         }else if(dealerHandSum === this.state.playerHandSum){
             setTimeout(()=>{
                 let cash = this.state.cash + this.state.bet;
@@ -549,8 +556,9 @@ export default class PlayTable extends Component {
                     isEnough: false,
                     isMore: false
                 });
+                updateData(cash)
                 alert('Победила дружба!!!!!!!!!!!!!');
-            }, 1000);
+            }, 700);
         }else{
             setTimeout(()=>{
                 let cash = this.state.cash;
@@ -564,18 +572,33 @@ export default class PlayTable extends Component {
                     isEnough: false,
                     isMore: false
                 });
+                updateData(cash)
                 alert('Вы проиграли!!!!!!!');
-            }, 1000);
+            }, 700);
         }
     }
 
 
-    componentDidMount() {
+    async componentDidMount() {
+        this._isMounted = true;
         loc(this);
+        const that = this
+        const userId = firebase.auth().currentUser.uid
+
+        await firebase.database().ref('/users/'+userId).once('value').then(snapshot => {
+            if(that._isMounted){
+                that.setState({
+                    name: snapshot.val().name,
+                    cash: snapshot.val().cash,
+                    uid: userId
+               })
+            }
+        })
       }
 
       componentWillUnMount() {
         rol();
+        this._isMounted = false;
       }
 
 
@@ -591,7 +614,7 @@ export default class PlayTable extends Component {
                 width={widthScreen}
                 height={heightScreen}
             />
-            <Rate cash={this.state.cash} bet={this.state.bet} width={widthScreen} height={heightScreen}/>
+            <Rate cash={this.state.cash} bet={this.state.bet} name={this.state.name} width={widthScreen} height={heightScreen}/>
             <View style={(widthScreen > heightScreen) ? styles.dibsRight : styles.dibsLeft}>
                 {
                     this.state.dibs.map((dib, index) =>
@@ -679,4 +702,9 @@ function getSum (hand){
     }
 
     return sum;
+}
+
+function updateData(cash){
+    let userId = firebase.auth().currentUser.uid
+    firebase.database().ref('/users/'+userId).update({cash: cash});
 }
